@@ -5,7 +5,9 @@ import yfinance as yf
 import streamlit as st
 from scipy.stats import norm
 import plotly.graph_objects as go
-
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
 # =============================================================================
 # Class Definitions
 # =============================================================================
@@ -119,14 +121,44 @@ def compute_delta_smoothing_finite(S_SX5E, S_FX, r_EUR, r_USD, sigma_SX5E, sigma
         delta_SX5E *= 0.5
         delta_FX *= 0.5
     return delta_SX5E, delta_FX
+def generate_dashboard_pdf():
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    # Draw text – customize this with your actual dashboard content
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, height - 100, "Monte-Carlo Pricing Dashboard")
+    p.setFont("Helvetica", 12)
+    p.drawString(100, height - 130, "This PDF contains the dashboard details.")
+    
+    # You can add more elements like images, tables, etc.
+    p.showPage()
+    p.save()
+
+    pdf_data = buffer.getvalue()
+    buffer.close()
+    return pdf_data
 
 # =============================================================================
 # Streamlit Interface Setup
 # =============================================================================
 
 st.set_page_config(page_title="Monte-Carlo Pricing", layout="wide")
-st.markdown("<h1 style='text-align: center;'> Monte-Carlo Pricing of a Put Contingent Option</h1>", unsafe_allow_html=True)
-st.markdown("<hr style='border: 1px solid #555;'>", unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <h1 style='text-align: center;'>Monte-Carlo Pricing of a Put Contingent Option</h1>
+    <p style='text-align: center;'>
+        Created by 
+        <a href='https://www.linkedin.com/in/matthieu-lombardo' target='_blank'>Matthieu Lombardo</a> and 
+        <a href='https://www.linkedin.com/in/mathis-de-looze' target='_blank'>Mathis De Looze</a>
+    </p>
+    """,
+    unsafe_allow_html=True
+)
+
+
 
 # =============================================================================
 # Sidebar for Market Parameters
@@ -163,6 +195,7 @@ S1, S2 = MC.get_MC_distribution()
 # =============================================================================
 # Simulation Verification and Asset Prices Summary
 # =============================================================================
+st.markdown("<hr style='border: 1px solid #555;'>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>📊 Monte-Carlo Simulation Verification</h1>", unsafe_allow_html=True)
 st.markdown("<hr style='border: 1px solid #555;'>", unsafe_allow_html=True)
 
@@ -966,3 +999,12 @@ else:
         ]
     })
     st.dataframe(pnl_summary_strategies.style.format({"Final P&L (EUR)": "{:,.2f}"}), width=500)
+pdf_data = generate_dashboard_pdf()
+
+# Provide a download button in Streamlit
+st.download_button(
+    label="Download Dashboard as PDF",
+    data=pdf_data,
+    file_name="dashboard.pdf",
+    mime="application/pdf"
+)
